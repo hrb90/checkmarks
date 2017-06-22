@@ -24,13 +24,21 @@ type alias Model =
 type Msg =
   NoOp
   | UpdateInput String
-  | AddTweet
+  | SendPlayerTweet
+  | SendReply User
 
 makeTweet : User -> String -> Tweet
 makeTweet user str =
   { content = str
   , user = user }
 
+generateTweet : User -> Tweet
+generateTweet user =
+  let makeFromString = makeTweet user
+  in
+  case user of
+    Player -> makeFromString "Healthy young child goes to doctor, gets pumped with massive shot of many vaccines, doesn't feel good and changes - AUTISM. Many such cases!"
+    NPC data -> makeFromString (generateText data.alignment)
 
 init : (Model, Cmd Msg)
 init =
@@ -43,41 +51,52 @@ update msg model =
   case msg of
     NoOp -> model ! []
     UpdateInput str -> { model | currentInput = str } ! []
-    AddTweet -> let prependTweet tl =
+    SendPlayerTweet -> let prependTweet tl =
                     (makeTweet Player model.currentInput) :: tl
                 in
                     { model | timeline = prependTweet model.timeline }
                      |> update (UpdateInput "")
+    SendReply user -> let prependTweet tl =
+                    (generateTweet user) :: tl
+                in
+                    { model | timeline = prependTweet model.timeline } ! []
+
 
 -- View logic
 
 view : Model -> Html Msg
 view model =
+  div
+    [ class "root" ]
+    [ tweetInput model.currentInput
+    , viewTweetList model
+    , escapeHatch model ]
+
+viewTweetList : Model -> Html Msg
+viewTweetList model =
     ul
         [ class "tweets-list" ]
-        ((tweetInput model.currentInput) :: (List.map viewTweet model.timeline))
+        (List.map viewTweetLi model.timeline)
 
-trumpHeader : Html Msg
-trumpHeader = p
-                [ class "tweet-header" ]
-                [ text "Donald J. Trump"
-                , text "@realDonaldTrump" ]
+makeHeader : UserData -> Html Msg
+makeHeader data =
+  p
+    [ class "tweet-header" ]
+    [ text data.nickname
+    , text data.username ]
 
 viewHeader : Tweet -> Html Msg
 viewHeader tweet =
   case tweet.user of
-    Player -> trumpHeader
-    NPC data -> p
-                  [ class "tweet-header" ]
-                  [ text data.nickname
-                  , text data.username ]
+    Player -> makeHeader trumpData
+    NPC data -> makeHeader data
 
-viewTweet : Tweet -> Html Msg
-viewTweet tweet =
+viewTweetLi : Tweet -> Html Msg
+viewTweetLi tweet =
     li
         [ class "tweets-list-item" ]
         [ div
-          [ class "tweet "]
+          [ class "tweet" ]
           [ viewHeader tweet
           , text tweet.content ]
         ]
@@ -93,6 +112,19 @@ tweetInput str =
             , onInput UpdateInput ]
             [],
            button
-             [ onClick AddTweet ]
+             [ onClick SendPlayerTweet
+             , disabled (String.length str == 0) ]
              [ text "Tweet" ]
+        ]
+
+-- This is for development purposes, it's a place where I can put things
+-- that won't exist in the final UI but are helpful in development
+
+escapeHatch : Model -> Html Msg
+escapeHatch model =
+    div
+        [ class "escape-hatch" ]
+        [ button
+          [ onClick (SendReply (getRandomUser ()))]
+          [ text "Get reply" ]
         ]
