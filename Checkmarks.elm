@@ -15,7 +15,8 @@ main =
 
 type alias Tweet =
   { content : String
-  , user : User }
+  , user : User
+  , liked: Bool }
 
 type alias Model =
   { currentInput: String
@@ -26,11 +27,14 @@ type Msg =
   | UpdateInput String
   | SendPlayerTweet
   | SendReply User
+  | Like Tweet
+  | Unlike Tweet
 
 makeTweet : User -> String -> Tweet
 makeTweet user str =
   { content = str
-  , user = user }
+  , user = user
+  , liked = False }
 
 generateTweet : User -> Tweet
 generateTweet user =
@@ -60,6 +64,8 @@ update msg model =
                     (generateTweet user) :: tl
                 in
                     { model | timeline = prependTweet model.timeline } ! []
+    Like tweet -> model ! []
+    Unlike tweet -> model ! []
 
 
 -- View logic
@@ -91,6 +97,20 @@ viewHeader tweet =
     Player -> makeHeader trumpData
     NPC data -> makeHeader data
 
+viewFooter : Tweet -> Html Msg
+viewFooter tweet =
+  let buttoninfo = if tweet.liked then { text = "Unlike", msg = Unlike tweet } else { text = "Like", msg = Like tweet }
+  in
+  case tweet.user of
+    Player -> div [ class "tweet-footer hidden" ] []
+    NPC _ -> div
+              [ class "tweet-footer" ]
+              [ button
+                [ class "like-button"
+                , onClick buttoninfo.msg ]
+                [ text buttoninfo.text ]
+              ]
+
 viewTweetLi : Tweet -> Html Msg
 viewTweetLi tweet =
     li
@@ -98,7 +118,8 @@ viewTweetLi tweet =
         [ div
           [ class "tweet" ]
           [ viewHeader tweet
-          , text tweet.content ]
+          , text tweet.content
+          , viewFooter tweet ]
         ]
 
 tweetInput : String -> Html Msg
@@ -113,7 +134,7 @@ tweetInput str =
             [],
            button
              [ onClick SendPlayerTweet
-             , disabled (String.length str == 0) ]
+             , disabled (String.isEmpty str) ]
              [ text "Tweet" ]
         ]
 
