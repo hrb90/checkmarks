@@ -14,12 +14,14 @@ main =
     , subscriptions = \_ -> Sub.none }
 
 type alias Tweet =
-  { content : String
+  { id : Int
+  , content : String
   , user : User
   , liked: Bool }
 
 type alias Model =
-  { currentInput: String
+  { uid: Int
+  , currentInput: String
   , timeline: List Tweet }
 
 type Msg =
@@ -30,15 +32,16 @@ type Msg =
   | Like Tweet
   | Unlike Tweet
 
-makeTweet : User -> String -> Tweet
-makeTweet user str =
-  { content = str
+makeTweet : Int -> User -> String -> Tweet
+makeTweet iden user str =
+  { id = iden
+  , content = str
   , user = user
   , liked = False }
 
-generateTweet : User -> Tweet
-generateTweet user =
-  let makeFromString = makeTweet user
+generateTweet : Int -> User -> Tweet
+generateTweet iden user =
+  let makeFromString = makeTweet iden user
   in
   case user of
     Player -> makeFromString "Healthy young child goes to doctor, gets pumped with massive shot of many vaccines, doesn't feel good and changes - AUTISM. Many such cases!"
@@ -46,9 +49,13 @@ generateTweet user =
 
 init : (Model, Cmd Msg)
 init =
-  { currentInput = "", timeline = [] } ! []
+  { currentInput = "", timeline = [], uid = 1 } ! []
 
 -- Update logic
+
+increment : Model -> Model
+increment model =
+  { model | uid = model.uid + 1 }
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -56,16 +63,29 @@ update msg model =
     NoOp -> model ! []
     UpdateInput str -> { model | currentInput = str } ! []
     SendPlayerTweet -> let prependTweet tl =
-                    (makeTweet Player model.currentInput) :: tl
+                    (makeTweet model.uid Player model.currentInput) :: tl
                 in
                     { model | timeline = prependTweet model.timeline }
                      |> update (UpdateInput "")
     SendReply user -> let prependTweet tl =
-                    (generateTweet user) :: tl
+                    (generateTweet model.uid user) :: tl
                 in
-                    { model | timeline = prependTweet model.timeline } ! []
-    Like tweet -> model ! []
-    Unlike tweet -> model ! []
+                    ({ model | timeline = prependTweet model.timeline }
+                    |> increment) ! []
+    Like tweet -> let like t =
+                    if t.id == tweet.id then
+                      { t | liked = True }
+                    else
+                      t
+                  in
+                  { model | timeline = List.map like model.timeline } ! []
+    Unlike tweet -> let unlike t =
+                      if t.id == tweet.id then
+                        { t | liked = False }
+                      else
+                        t
+                    in
+                    { model | timeline = List.map unlike model.timeline } ! []
 
 
 -- View logic
