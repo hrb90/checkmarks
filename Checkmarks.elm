@@ -7,6 +7,7 @@ import Random exposing (generate)
 import String
 import Generators exposing (..)
 import User exposing (..)
+import Time exposing (Time, second)
 import Tweet exposing (..)
 
 main =
@@ -14,21 +15,25 @@ main =
     { init = init
     , view = view
     , update = update
-    , subscriptions = \_ -> Sub.none }
+    , subscriptions = subscriptions }
 
 type alias Model =
   { uid: Int
   , currentInput: String
   , timeline: List Tweet
-  , users: List UserData }
+  , users: List UserData
+  , score: Int
+  , health: Int
+  , inRound: Bool }
 
 type Msg =
   NoOp
   | Tick
+  | StartRound
+  | EndRound
   | CreateUser UserData
   | GenerateReply UserData
   | UpdateInput String
-  | SendPlayerTweet
   | SendTweet Tweet
   | Like Tweet
   | Unlike Tweet
@@ -37,7 +42,7 @@ type Msg =
 
 init : (Model, Cmd Msg)
 init =
-  { currentInput = "", timeline = [], uid = 1, users = [] } ! []
+  { currentInput = "", timeline = [], uid = 1, users = [], score = 0, health = 0, inRound = False } ! []
 
 -- Update logic
 
@@ -46,6 +51,14 @@ init =
 incrementId : Model -> Model
 incrementId model =
   { model | uid = model.uid + 1 }
+
+addToScore : Int -> Model -> Model
+addToScore n model =
+  { model | score = model.score + n }
+
+addToHealth : Int -> Model -> Model
+addToHealth n model =
+  { model | health = Basics.min (model.health + n) 100 }
 
 setCurrentInput : String -> Model -> Model
 setCurrentInput newInput model =
@@ -79,6 +92,38 @@ filterUsers : (UserData -> Bool) -> Model -> Model
 filterUsers f model =
   { model | users = List.filter f model.users }
 
+startRound : Model -> Model
+startRound model =
+  { model | inRound = True } |> addToHealth 200
+
+endRound : Model -> Model
+endRound model =
+  { model | inRound = False }
+
+updateScore : Msg -> Model -> Model
+updateScore msg model =
+  case msg of
+    Like tweet -> case tweet.user of
+                    Player -> model
+                    NPC data -> case data.alignment of
+                                  Maga -> model |> addToScore 1 |> addToHealth 1
+                                  Resist -> model |> addToHealth -3
+                                  Boring -> model |> addToHealth -1
+    Unlike tweet -> case tweet.user of
+                    Player -> model
+                    NPC data -> case data.alignment of
+                                  Maga -> model |> addToHealth -3
+                                  Resist -> model |> addToScore 1
+                                  Boring -> model |> addToHealth -1
+    Block data -> case data.alignment of
+                    Maga -> model |> addToHealth -5
+                    Resist -> model |> addToScore 5 |> addToHealth 1
+                    Boring -> model |> addToHealth -3
+    Tick -> model
+            |> addToHealth (-1 * (List.length (List.filter resistanceTweet model.timeline) ))
+    _ -> model
+
+
 -- Cmd Msg
 
 noEffects : Model -> ( Model, Cmd Msg )
@@ -108,14 +153,17 @@ update msg model =
               List.filter resists model.users
             in
             case resisters of
-              [] -> model |> genUsers
-              hd::tl -> model |> pickUser hd model.users
+              [] -> model |> (update EndRound)
+              hd::tl -> model |> (updateScore msg) |> pickUser hd model.users
+    StartRound -> let tweet =
+                    makeTweet Player model.currentInput
+                  in
+                    model
+                    |> (setCurrentInput "") |> (addTweet tweet)
+                    |> startRound |> genUsers
+    EndRound -> model |> endRound |> noEffects
     GenerateReply data -> model |> (genReply data)
     UpdateInput str -> model |> (setCurrentInput str) |> noEffects
-    SendPlayerTweet -> let sendMsg =
-                         SendTweet (makeTweet Player model.currentInput)
-                       in
-                         model |> (setCurrentInput "") |> (update sendMsg)
     SendTweet tweet -> model |> (addTweet tweet) |> noEffects
     Like tweet -> let like t =
                     if t.id == tweet.id then
@@ -123,14 +171,14 @@ update msg model =
                     else
                       t
                   in
-                    model |> (mapTimeline like) |> noEffects
+                    model |> (mapTimeline like) |> (updateScore msg) |> noEffects
     Unlike tweet -> let unlike t =
                       if t.id == tweet.id then
                         { t | liked = False }
                       else
                         t
                     in
-                      model |> (mapTimeline unlike) |> noEffects
+                      model |> (mapTimeline unlike) |> (updateScore msg) |> noEffects
     Block data -> let display t =
                       case t.user of
                         User.Player -> True
@@ -138,8 +186,15 @@ update msg model =
                     in
                       model |> (filterTimeline display)
                       |> (filterUsers (\u -> u.userId /= data.userId))
+                      |> (updateScore msg)
                       |> noEffects
 
+
+-- subscriptions
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Time.every second (\_ -> if model.inRound then Tick else NoOp)
 
 -- View logic
 
@@ -148,8 +203,9 @@ view model =
   div
     [ class "root" ]
     [ tweetInput model.currentInput
+    , escapeHatch model
     , viewTweetList model
-    , escapeHatch model ]
+    ]
 
 viewTweetList : Model -> Html Msg
 viewTweetList model =
@@ -219,7 +275,7 @@ tweetInput str =
             ]
             [],
            button
-             [ onClick SendPlayerTweet
+             [ onClick StartRound
              , disabled (String.isEmpty str)
              ]
              [ text "Tweet" ]
@@ -232,7 +288,10 @@ escapeHatch : Model -> Html Msg
 escapeHatch model =
     div
         [ class "escape-hatch" ]
-        [ button
-          [ onClick Tick ]
-          [ text "Tick" ]
+        [ p
+            [ class "score" ]
+            [ text (toString model.score) ]
+        , p
+            [ class "health" ]
+            [ text (toString model.health) ]
         ]

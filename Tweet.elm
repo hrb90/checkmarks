@@ -16,3 +16,11 @@ makeTweet user str =
   , content = str
   , user = user
   , liked = False }
+
+--
+
+resistanceTweet : Tweet -> Bool
+resistanceTweet tweet =
+  case tweet.user of
+    Player -> False
+    NPC data -> resists data
