@@ -3,8 +3,10 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Random exposing (generate)
 import String
 import User exposing (..)
+import Tweet exposing (..)
 
 main =
   Html.program
@@ -13,12 +15,6 @@ main =
     , update = update
     , subscriptions = \_ -> Sub.none }
 
-type alias Tweet =
-  { id : Int
-  , content : String
-  , user : User
-  , liked: Bool }
-
 type alias Model =
   { uid: Int
   , currentInput: String
@@ -26,26 +22,13 @@ type alias Model =
 
 type Msg =
   NoOp
+  | GenerateReply User
   | UpdateInput String
   | SendPlayerTweet
-  | SendReply User
+  | SendTweet Tweet
   | Like Tweet
   | Unlike Tweet
 
-makeTweet : Int -> User -> String -> Tweet
-makeTweet iden user str =
-  { id = iden
-  , content = str
-  , user = user
-  , liked = False }
-
-generateTweet : Int -> User -> Tweet
-generateTweet iden user =
-  let makeFromString = makeTweet iden user
-  in
-  case user of
-    Player -> makeFromString "Healthy young child goes to doctor, gets pumped with massive shot of many vaccines, doesn't feel good and changes - AUTISM. Many such cases!"
-    NPC data -> makeFromString (generateText data.alignment)
 
 init : (Model, Cmd Msg)
 init =
@@ -78,21 +61,23 @@ noEffects : Model -> ( Model, Cmd Msg )
 noEffects model =
   model ! []
 
+genReply : User -> Model -> ( Model, Cmd Msg )
+genReply user model =
+  model ! [generate SendTweet (tweetGenerator user model.uid)]
+
 -- The update function itself
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     NoOp -> model |> noEffects
+    GenerateReply user -> model |> (genReply user)
     UpdateInput str -> model |> (setCurrentInput str) |> noEffects
-    SendPlayerTweet -> let newTweet =
-                    (makeTweet model.uid Player model.currentInput)
+    SendPlayerTweet -> let sendMsg =
+                    SendTweet (makeTweet model.uid Player model.currentInput)
                 in
-                    model |> (addTweet newTweet) |> (setCurrentInput "") |> noEffects
-    SendReply user -> let newTweet =
-                    (generateTweet model.uid user)
-                in
-                    model |> (addTweet newTweet) |> noEffects
+                    model |> (setCurrentInput "") |> (update sendMsg)
+    SendTweet tweet -> model |> (addTweet tweet) |> noEffects
     Like tweet -> let like t =
                     if t.id == tweet.id then
                       { t | liked = True }
@@ -140,20 +125,23 @@ viewHeader tweet =
 
 viewFooter : Tweet -> Html Msg
 viewFooter tweet =
-  let buttoninfo = if tweet.liked then { text = "Unlike", msg = Unlike tweet } else { text = "Like", msg = Like tweet }
+  let buttoninfo = if tweet.liked then
+                      { text = "Unlike", class = "star liked", msg = Unlike tweet }
+                   else
+                      { text = "Like", class = "star unliked", msg = Like tweet }
   in
   case tweet.user of
     Player -> div [ class "tweet-footer hidden" ] []
     NPC _ -> div
               [ class "tweet-footer" ]
               [ button
-                [ class "like-button"
+                [ class buttoninfo.class
                 , onClick buttoninfo.msg ]
                 [ text buttoninfo.text ]
               ]
 
 viewTweetLi : Tweet -> Html Msg
-viewTweetLi tweet =*
+viewTweetLi tweet =
     li
         [ class "tweets-list-item" ]
         [ div
@@ -187,6 +175,6 @@ escapeHatch model =
     div
         [ class "escape-hatch" ]
         [ button
-          [ onClick (SendReply (getRandomUser ()))]
+          [ onClick (GenerateReply legate)]
           [ text "Get reply" ]
         ]
