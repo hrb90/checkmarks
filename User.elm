@@ -6,7 +6,7 @@ type alias UserData =
   { nickname : String
   , username : String
   , avatarUrl : String
-  , userId : Maybe Int
+  , userId : Int
   , alignment : Alignment }
 
 type alias RandomData = List Float
@@ -15,7 +15,7 @@ trumpData =
   { nickname = "Donald J. Trump"
   , username = "realDonaldTrump"
   , avatarUrl = ""
-  , userId = Nothing
+  , userId = -1
   , alignment = Maga }
 
 type User = Player | NPC UserData
@@ -24,5 +24,5 @@ legate =
   NPC { nickname = "William LeGate"
   , username = "williamlegate"
   , avatarUrl = ""
-  , userId = Nothing
+  , userId = 0
   , alignment = Resist }

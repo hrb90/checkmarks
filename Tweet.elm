@@ -12,24 +12,22 @@ type alias Tweet =
 
 -- Constructors
 
-index: List a -> Int -> Maybe a
-index l idx =
-  get idx (fromList l)
-
-indexWithDefault : a -> List a -> Int -> a
-indexWithDefault default l idx =
-  Maybe.withDefault default (index l idx)
-
-pickFromList : a -> List a -> Generator a
-pickFromList default l =
-  Random.map (indexWithDefault default l) (int 0 (List.length l - 1))
-
 makeTweet : Int -> User -> String -> Tweet
 makeTweet iden user str =
   { id = iden
   , content = str
   , user = user
   , liked = False }
+
+-- Generators
+
+indexWithDefault : a -> List a -> Int -> a
+indexWithDefault default l idx =
+  Maybe.withDefault default (get idx (fromList l))
+
+pickFromList : a -> List a -> Generator a
+pickFromList default l =
+  Random.map (indexWithDefault default l) (int 0 (List.length l - 1))
 
 magaTweets : List String
 magaTweets = [ "You tell em Mr President sir!!"

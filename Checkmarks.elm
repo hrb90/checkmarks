@@ -28,6 +28,7 @@ type Msg =
   | SendTweet Tweet
   | Like Tweet
   | Unlike Tweet
+  | Block Int
 
 
 init : (Model, Cmd Msg)
@@ -54,6 +55,10 @@ addTweet tweet model =
 mapTimeline: (Tweet -> Tweet) -> Model -> Model
 mapTimeline f model =
   { model | timeline = List.map f model.timeline }
+
+filterTimeline: (Tweet -> Bool) -> Model -> Model
+filterTimeline f model =
+  { model | timeline = List.filter f model.timeline }
 
 -- Cmd Msg
 
@@ -92,6 +97,12 @@ update msg model =
                         t
                     in
                       model |> (mapTimeline unlike) |> noEffects
+    Block userId -> let display t =
+                      case t.user of
+                        User.Player -> True
+                        User.NPC data -> data.userId /= userId
+                    in
+                      model |> (filterTimeline display) |> noEffects
 
 
 -- View logic
@@ -132,12 +143,16 @@ viewFooter tweet =
   in
   case tweet.user of
     Player -> div [ class "tweet-footer hidden" ] []
-    NPC _ -> div
+    NPC data -> div
               [ class "tweet-footer" ]
               [ button
                 [ class buttoninfo.class
                 , onClick buttoninfo.msg ]
                 [ text buttoninfo.text ]
+              , button
+                [ class "block"
+                , onClick (Block data.userId) ]
+                [ text "Block" ]
               ]
 
 viewTweetLi : Tweet -> Html Msg
