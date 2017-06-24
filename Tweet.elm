@@ -2,7 +2,7 @@ module Tweet exposing (..)
 
 import Array exposing (fromList, get)
 import Random exposing (..)
-import User exposing (User, Alignment)
+import User exposing (..)
 
 type alias Tweet =
   { id : Int
@@ -62,10 +62,6 @@ playerTextGenerator =
              else
                "Despite the constant negative press covfefe,") bool
 
-tweetGenerator : User -> Int -> Generator Tweet
-tweetGenerator user id =
-  let makeFromStringGen = Random.map (makeTweet id user)
-  in
-  case user of
-    User.Player -> makeFromStringGen playerTextGenerator
-    User.NPC data -> makeFromStringGen (npcTextGenerator data.alignment)
+tweetGenerator : UserData -> Int -> Generator Tweet
+tweetGenerator data id =
+  Random.map (makeTweet id (User.NPC data)) (npcTextGenerator data.alignment)

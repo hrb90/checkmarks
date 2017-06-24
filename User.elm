@@ -21,7 +21,7 @@ trumpData =
 type User = Player | NPC UserData
 
 legate =
-  NPC { nickname = "William LeGate"
+  { nickname = "William LeGate"
   , username = "williamlegate"
   , avatarUrl = ""
   , userId = 0

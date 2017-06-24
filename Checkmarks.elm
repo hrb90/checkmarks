@@ -22,13 +22,13 @@ type alias Model =
 
 type Msg =
   NoOp
-  | GenerateReply User
+  | GenerateReply UserData
   | UpdateInput String
   | SendPlayerTweet
   | SendTweet Tweet
   | Like Tweet
   | Unlike Tweet
-  | Block Int
+  | Block UserData
 
 
 init : (Model, Cmd Msg)
@@ -66,9 +66,9 @@ noEffects : Model -> ( Model, Cmd Msg )
 noEffects model =
   model ! []
 
-genReply : User -> Model -> ( Model, Cmd Msg )
-genReply user model =
-  model ! [generate SendTweet (tweetGenerator user model.uid)]
+genReply : UserData -> Model -> ( Model, Cmd Msg )
+genReply data model =
+  model ! [generate SendTweet (tweetGenerator data model.uid)]
 
 -- The update function itself
 
@@ -76,12 +76,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     NoOp -> model |> noEffects
-    GenerateReply user -> model |> (genReply user)
+    GenerateReply data -> model |> (genReply data)
     UpdateInput str -> model |> (setCurrentInput str) |> noEffects
     SendPlayerTweet -> let sendMsg =
-                    SendTweet (makeTweet model.uid Player model.currentInput)
-                in
-                    model |> (setCurrentInput "") |> (update sendMsg)
+                         SendTweet (makeTweet model.uid Player model.currentInput)
+                       in
+                         model |> (setCurrentInput "") |> (update sendMsg)
     SendTweet tweet -> model |> (addTweet tweet) |> noEffects
     Like tweet -> let like t =
                     if t.id == tweet.id then
@@ -97,10 +97,10 @@ update msg model =
                         t
                     in
                       model |> (mapTimeline unlike) |> noEffects
-    Block userId -> let display t =
+    Block data -> let display t =
                       case t.user of
                         User.Player -> True
-                        User.NPC data -> data.userId /= userId
+                        User.NPC otherData -> data.userId /= otherData.userId
                     in
                       model |> (filterTimeline display) |> noEffects
 
@@ -136,24 +136,29 @@ viewHeader tweet =
 
 viewFooter : Tweet -> Html Msg
 viewFooter tweet =
-  let buttoninfo = if tweet.liked then
-                      { text = "Unlike", class = "star liked", msg = Unlike tweet }
-                   else
-                      { text = "Like", class = "star unliked", msg = Like tweet }
-  in
   case tweet.user of
     Player -> div [ class "tweet-footer hidden" ] []
     NPC data -> div
               [ class "tweet-footer" ]
-              [ button
-                [ class buttoninfo.class
-                , onClick buttoninfo.msg ]
-                [ text buttoninfo.text ]
+              [ likeButton tweet
               , button
                 [ class "block"
-                , onClick (Block data.userId) ]
+                , onClick (Block data) ]
                 [ text "Block" ]
               ]
+
+likeButton : Tweet -> Html Msg
+likeButton tweet =
+  let buttoninfo =
+    if tweet.liked then
+      { text = "Unlike", class = "star liked", msg = Unlike tweet }
+    else
+      { text = "Like", class = "star unliked", msg = Like tweet }
+  in
+  button
+    [ class buttoninfo.class
+    , onClick buttoninfo.msg ]
+    [ text buttoninfo.text ]
 
 viewTweetLi : Tweet -> Html Msg
 viewTweetLi tweet =
@@ -174,11 +179,13 @@ tweetInput str =
             [ class "tweet-box"
             , placeholder "Write a tweet!"
             , value str
-            , onInput UpdateInput ]
+            , onInput UpdateInput
+            ]
             [],
            button
              [ onClick SendPlayerTweet
-             , disabled (String.isEmpty str) ]
+             , disabled (String.isEmpty str)
+             ]
              [ text "Tweet" ]
         ]
 
@@ -190,6 +197,6 @@ escapeHatch model =
     div
         [ class "escape-hatch" ]
         [ button
-          [ onClick (GenerateReply legate)]
+          [ onClick (GenerateReply legate) ]
           [ text "Get reply" ]
         ]
