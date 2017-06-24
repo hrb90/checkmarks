@@ -53,39 +53,60 @@ init =
 
 -- Update logic
 
-increment : Model -> Model
-increment model =
+-- Model
+
+incrementId : Model -> Model
+incrementId model =
   { model | uid = model.uid + 1 }
+
+setCurrentInput : String -> Model -> Model
+setCurrentInput newInput model =
+  { model | currentInput = newInput }
+
+addTweet: Tweet -> Model -> Model
+addTweet tweet model =
+  { model | timeline = tweet::model.timeline }
+  |> incrementId
+
+mapTimeline: (Tweet -> Tweet) -> Model -> Model
+mapTimeline f model =
+  { model | timeline = List.map f model.timeline }
+
+-- Cmd Msg
+
+noEffects : Model -> ( Model, Cmd Msg )
+noEffects model =
+  model ! []
+
+-- The update function itself
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    NoOp -> model ! []
-    UpdateInput str -> { model | currentInput = str } ! []
-    SendPlayerTweet -> let prependTweet tl =
-                    (makeTweet model.uid Player model.currentInput) :: tl
+    NoOp -> model |> noEffects
+    UpdateInput str -> model |> (setCurrentInput str) |> noEffects
+    SendPlayerTweet -> let newTweet =
+                    (makeTweet model.uid Player model.currentInput)
                 in
-                    { model | timeline = prependTweet model.timeline }
-                     |> update (UpdateInput "")
-    SendReply user -> let prependTweet tl =
-                    (generateTweet model.uid user) :: tl
+                    model |> (addTweet newTweet) |> (setCurrentInput "") |> noEffects
+    SendReply user -> let newTweet =
+                    (generateTweet model.uid user)
                 in
-                    ({ model | timeline = prependTweet model.timeline }
-                    |> increment) ! []
+                    model |> (addTweet newTweet) |> noEffects
     Like tweet -> let like t =
                     if t.id == tweet.id then
                       { t | liked = True }
                     else
                       t
                   in
-                  { model | timeline = List.map like model.timeline } ! []
+                    model |> (mapTimeline like) |> noEffects
     Unlike tweet -> let unlike t =
                       if t.id == tweet.id then
                         { t | liked = False }
                       else
                         t
                     in
-                    { model | timeline = List.map unlike model.timeline } ! []
+                      model |> (mapTimeline unlike) |> noEffects
 
 
 -- View logic
@@ -132,7 +153,7 @@ viewFooter tweet =
               ]
 
 viewTweetLi : Tweet -> Html Msg
-viewTweetLi tweet =
+viewTweetLi tweet =*
     li
         [ class "tweets-list-item" ]
         [ div
