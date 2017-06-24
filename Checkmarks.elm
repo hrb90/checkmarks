@@ -5,6 +5,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Random exposing (generate)
 import String
+import Generators exposing (..)
 import User exposing (..)
 import Tweet exposing (..)
 
@@ -18,10 +19,13 @@ main =
 type alias Model =
   { uid: Int
   , currentInput: String
-  , timeline: List Tweet }
+  , timeline: List Tweet
+  , users: List UserData }
 
 type Msg =
   NoOp
+  | Tick
+  | CreateUser UserData
   | GenerateReply UserData
   | UpdateInput String
   | SendPlayerTweet
@@ -33,7 +37,7 @@ type Msg =
 
 init : (Model, Cmd Msg)
 init =
-  { currentInput = "", timeline = [], uid = 1 } ! []
+  { currentInput = "", timeline = [], uid = 1, users = [] } ! []
 
 -- Update logic
 
@@ -47,9 +51,20 @@ setCurrentInput : String -> Model -> Model
 setCurrentInput newInput model =
   { model | currentInput = newInput }
 
+addUser: UserData -> Model -> Model
+addUser data model =
+  let data_ =
+    { data | userId = model.uid }
+  in
+  { model | users = data_::model.users }
+  |> incrementId
+
 addTweet: Tweet -> Model -> Model
 addTweet tweet model =
-  { model | timeline = tweet::model.timeline }
+  let tweet_ =
+    { tweet | id = model.uid }
+  in
+  { model | timeline = tweet_::model.timeline }
   |> incrementId
 
 mapTimeline: (Tweet -> Tweet) -> Model -> Model
@@ -60,6 +75,10 @@ filterTimeline: (Tweet -> Bool) -> Model -> Model
 filterTimeline f model =
   { model | timeline = List.filter f model.timeline }
 
+filterUsers : (UserData -> Bool) -> Model -> Model
+filterUsers f model =
+  { model | users = List.filter f model.users }
+
 -- Cmd Msg
 
 noEffects : Model -> ( Model, Cmd Msg )
@@ -68,7 +87,15 @@ noEffects model =
 
 genReply : UserData -> Model -> ( Model, Cmd Msg )
 genReply data model =
-  model ! [generate SendTweet (tweetGenerator data model.uid)]
+  model ! [generate SendTweet (tweetGenerator data)]
+
+genUsers: Model -> ( Model, Cmd Msg )
+genUsers model =
+  model ! List.repeat 20 (generate CreateUser userGenerator)
+
+pickUser : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
+pickUser hd tl model =
+  model ! [generate GenerateReply (pickFromList hd (hd::tl))]
 
 -- The update function itself
 
@@ -76,10 +103,14 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     NoOp -> model |> noEffects
+    CreateUser data -> model |> addUser data |> noEffects
+    Tick -> case model.users of
+              [] -> model |> genUsers
+              hd::tl -> model |> pickUser hd tl
     GenerateReply data -> model |> (genReply data)
     UpdateInput str -> model |> (setCurrentInput str) |> noEffects
     SendPlayerTweet -> let sendMsg =
-                         SendTweet (makeTweet model.uid Player model.currentInput)
+                         SendTweet (makeTweet Player model.currentInput)
                        in
                          model |> (setCurrentInput "") |> (update sendMsg)
     SendTweet tweet -> model |> (addTweet tweet) |> noEffects
@@ -102,7 +133,9 @@ update msg model =
                         User.Player -> True
                         User.NPC otherData -> data.userId /= otherData.userId
                     in
-                      model |> (filterTimeline display) |> noEffects
+                      model |> (filterTimeline display)
+                      |> (filterUsers (\u -> u.userId /= data.userId))
+                      |> noEffects
 
 
 -- View logic
@@ -197,6 +230,6 @@ escapeHatch model =
     div
         [ class "escape-hatch" ]
         [ button
-          [ onClick (GenerateReply legate) ]
-          [ text "Get reply" ]
+          [ onClick Tick ]
+          [ text "Tick" ]
         ]

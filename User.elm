@@ -1,5 +1,7 @@
 module User exposing (..)
 
+import Random exposing (..)
+
 type Alignment = Maga | Resist | Boring
 
 type alias UserData =
@@ -9,14 +11,19 @@ type alias UserData =
   , userId : Int
   , alignment : Alignment }
 
-type alias RandomData = List Float
+createUser_: Int -> String -> String -> String -> Alignment -> UserData
+createUser_ id nick handle avi alignment =
+  { nickname = nick
+  , username = handle
+  , avatarUrl = avi
+  , userId = id
+  , alignment = alignment
+  }
+
+createUser = createUser_ 0
 
 trumpData =
-  { nickname = "Donald J. Trump"
-  , username = "realDonaldTrump"
-  , avatarUrl = ""
-  , userId = -1
-  , alignment = Maga }
+  createUser_ -1 "Donald J. Trump" "realDonaldTrump" "" Maga
 
 type User = Player | NPC UserData
 
