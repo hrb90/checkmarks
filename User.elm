@@ -33,3 +33,9 @@ legate =
   , avatarUrl = ""
   , userId = 0
   , alignment = Resist }
+
+resists : UserData -> Bool
+resists ud =
+  case ud.alignment of
+    Resist -> True
+    _ -> False

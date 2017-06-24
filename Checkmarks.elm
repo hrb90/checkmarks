@@ -104,9 +104,12 @@ update msg model =
   case msg of
     NoOp -> model |> noEffects
     CreateUser data -> model |> addUser data |> noEffects
-    Tick -> case model.users of
+    Tick -> let resisters =
+              List.filter resists model.users
+            in
+            case resisters of
               [] -> model |> genUsers
-              hd::tl -> model |> pickUser hd tl
+              hd::tl -> model |> pickUser hd model.users
     GenerateReply data -> model |> (genReply data)
     UpdateInput str -> model |> (setCurrentInput str) |> noEffects
     SendPlayerTweet -> let sendMsg =

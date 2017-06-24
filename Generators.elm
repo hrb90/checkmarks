@@ -49,13 +49,17 @@ tweetGenerator data =
 
 -- User generators
 
-nickGenerator = pickFromList "William Legate" []
+nickGenerator =
+  pickFromList "William Legate" []
 
-handleGenerator = pickFromList "williamlegate" []
+handleGenerator =
+  pickFromList "williamlegate" []
 
-aviGenerator = pickFromList "" []
+aviGenerator =
+  pickFromList "" []
 
-alignmentGenerator = pickFromList User.Maga [ User.Maga, User.Resist, User.Boring ]
+alignmentGenerator =
+  pickFromList User.Maga [ User.Maga, User.Resist, User.Boring ]
 
 userGenerator : Generator UserData
 userGenerator =
