@@ -24,10 +24,12 @@ type alias Model =
   , users: List UserData
   , score: Int
   , health: Int
-  , inRound: Bool }
+  , inRound: Bool
+  , gameOver: Bool }
 
 type Msg =
   NoOp
+  | Reset
   | Tick
   | StartRound
   | EndRound
@@ -42,7 +44,14 @@ type Msg =
 
 init : (Model, Cmd Msg)
 init =
-  { currentInput = "", timeline = [], uid = 1, users = [], score = 0, health = 0, inRound = False } ! []
+  { currentInput = ""
+  , timeline = []
+  , uid = 1
+  , users = []
+  , score = 0
+  , health = 0
+  , inRound = False
+  , gameOver = False } ! []
 
 -- Update logic
 
@@ -59,6 +68,13 @@ addToScore n model =
 addToHealth : Int -> Model -> Model
 addToHealth n model =
   { model | health = Basics.min (model.health + n) 100 }
+
+checkHealth : Model -> Model
+checkHealth model =
+  if model.health <= 0 then
+    { model | gameOver = True } |> endRound
+  else
+    model
 
 setCurrentInput : String -> Model -> Model
 setCurrentInput newInput model =
@@ -147,6 +163,7 @@ pickUser hd tl model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+    Reset -> init
     NoOp -> model |> noEffects
     CreateUser data -> model |> addUser data |> noEffects
     Tick -> let resisters =
@@ -154,7 +171,8 @@ update msg model =
             in
             case resisters of
               [] -> model |> (update EndRound)
-              hd::tl -> model |> (updateScore msg) |> pickUser hd model.users
+              hd::tl -> model |> (updateScore msg)
+                        |> checkHealth |> pickUser hd model.users
     StartRound -> let tweet =
                     makeTweet Player model.currentInput
                   in
@@ -200,11 +218,31 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
+  if model.gameOver then
+    viewGameOver model
+  else
+    div
+      [ class "root" ]
+      [ tweetInput model.currentInput
+      , escapeHatch model
+      , viewTweetList model
+      ]
+
+viewGameOver : Model -> Html Msg
+viewGameOver model =
   div
-    [ class "root" ]
-    [ tweetInput model.currentInput
-    , escapeHatch model
-    , viewTweetList model
+    [ class "game-over" ]
+    [
+      p
+        []
+        [ text "Game Over!"
+        , text ("Score: " ++ (toString model.score))
+        ]
+      , button
+          [ class "restart"
+          , onClick Reset
+          ]
+          [ text "New Game" ]
     ]
 
 viewTweetList : Model -> Html Msg
