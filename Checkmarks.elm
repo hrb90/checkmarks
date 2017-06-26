@@ -24,6 +24,7 @@ type alias Model =
   , users: List UserData
   , score: Int
   , health: Int
+  , roundNumber: Int
   , inRound: Bool
   , gameOver: Bool }
 
@@ -50,16 +51,31 @@ init =
   , users = []
   , score = 0
   , health = 0
+  , roundNumber = 0
   , inRound = False
   , gameOver = False } ! []
 
 -- Update logic
+
+-- Utils
+
+tweetsPerTick : Model -> Int
+tweetsPerTick model =
+  1
+
+populationSize : Model -> Int
+populationSize model =
+  20
 
 -- Model
 
 incrementId : Model -> Model
 incrementId model =
   { model | uid = model.uid + 1 }
+
+incrementRound : Model -> Model
+incrementRound model =
+  { model | roundNumber = model.roundNumber + 1 }
 
 addToScore : Int -> Model -> Model
 addToScore n model =
@@ -68,6 +84,7 @@ addToScore n model =
 addToHealth : Int -> Model -> Model
 addToHealth n model =
   { model | health = Basics.min (model.health + n) 100 }
+  |> checkHealth
 
 checkHealth : Model -> Model
 checkHealth model =
@@ -80,21 +97,25 @@ setCurrentInput : String -> Model -> Model
 setCurrentInput newInput model =
   { model | currentInput = newInput }
 
+clearUsers : Model -> Model
+clearUsers model =
+  { model | users = [] }
+
 addUser: UserData -> Model -> Model
 addUser data model =
   let data_ =
     { data | userId = model.uid }
   in
-  { model | users = data_::model.users }
-  |> incrementId
+    { model | users = data_::model.users }
+    |> incrementId
 
 addTweet: Tweet -> Model -> Model
 addTweet tweet model =
   let tweet_ =
     { tweet | id = model.uid }
   in
-  { model | timeline = tweet_::model.timeline }
-  |> incrementId
+    { model | timeline = tweet_::model.timeline }
+    |> incrementId
 
 mapTimeline: (Tweet -> Tweet) -> Model -> Model
 mapTimeline f model =
@@ -110,7 +131,10 @@ filterUsers f model =
 
 startRound : Model -> Model
 startRound model =
-  { model | inRound = True } |> addToHealth 200
+  { model | inRound = True }
+  |> addToHealth 200
+  |> incrementRound
+  |> clearUsers
 
 endRound : Model -> Model
 endRound model =
@@ -152,11 +176,17 @@ genReply data model =
 
 genUsers: Model -> ( Model, Cmd Msg )
 genUsers model =
-  model ! List.repeat 20 (generate CreateUser userGenerator)
+  let n =
+    populationSize model
+  in
+  model ! List.repeat n (generate CreateUser userGenerator)
 
-pickUser : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
-pickUser hd tl model =
-  model ! [generate GenerateReply (pickFromList hd (hd::tl))]
+pickUsers : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
+pickUsers hd tl model =
+  let n =
+    tweetsPerTick model
+  in
+    model ! List.repeat n (generate GenerateReply (pickFromList hd (hd::tl)))
 
 -- The update function itself
 
@@ -171,8 +201,7 @@ update msg model =
             in
             case resisters of
               [] -> model |> (update EndRound)
-              hd::tl -> model |> (updateScore msg)
-                        |> checkHealth |> pickUser hd model.users
+              hd::tl -> model |> (updateScore msg) |> pickUsers hd model.users
     StartRound -> let tweet =
                     makeTweet Player model.currentInput
                   in
@@ -218,15 +247,10 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  if model.gameOver then
-    viewGameOver model
-  else
-    div
-      [ class "root" ]
-      [ tweetInput model.currentInput
-      , escapeHatch model
-      , viewTweetList model
-      ]
+  case (model.gameOver, model.inRound) of
+    (True, _) -> viewGameOver model
+    (_, True) -> viewInRound model
+    (_, False) -> viewStartRound model
 
 viewGameOver : Model -> Html Msg
 viewGameOver model =
@@ -243,6 +267,18 @@ viewGameOver model =
           , onClick Reset
           ]
           [ text "New Game" ]
+    ]
+
+viewStartRound : Model -> Html Msg
+viewStartRound model =
+  tweetInput model.currentInput
+
+viewInRound : Model -> Html Msg
+viewInRound model =
+  div
+    [ class "root" ]
+    [ escapeHatch model
+    , viewTweetList model
     ]
 
 viewTweetList : Model -> Html Msg
@@ -319,6 +355,19 @@ tweetInput str =
              [ text "Tweet" ]
         ]
 
+score : Model -> Html Msg
+score model =
+  p
+    [ class "score" ]
+    [ text (toString model.score) ]
+
+
+health : Model -> Html Msg
+health model =
+  p
+    [ class "health" ]
+    [ text (toString model.health) ]
+
 -- This is for development purposes, it's a place where I can put things
 -- that won't exist in the final UI but are helpful in development
 
@@ -326,10 +375,6 @@ escapeHatch : Model -> Html Msg
 escapeHatch model =
     div
         [ class "escape-hatch" ]
-        [ p
-            [ class "score" ]
-            [ text (toString model.score) ]
-        , p
-            [ class "health" ]
-            [ text (toString model.health) ]
+        [ score model
+        , health model
         ]
