@@ -9,21 +9,23 @@ type alias UserData =
   , username : String
   , avatarUrl : String
   , userId : Int
-  , alignment : Alignment }
+  , alignment : Alignment
+  , reputation : Float }
 
-createUser_: Int -> String -> String -> String -> Alignment -> UserData
-createUser_ id nick handle avi alignment =
+createUser_: Int -> String -> String -> String -> Alignment -> Float -> UserData
+createUser_ id nick handle avi alignment reputation =
   { nickname = nick
   , username = handle
   , avatarUrl = avi
   , userId = id
   , alignment = alignment
+  , reputation = reputation
   }
 
 createUser = createUser_ 0
 
 trumpData =
-  createUser_ -1 "Donald J. Trump" "realDonaldTrump" "" Maga
+  createUser_ -1 "Donald J. Trump" "realDonaldTrump" "" Maga 0
 
 type User = Player | NPC UserData
 

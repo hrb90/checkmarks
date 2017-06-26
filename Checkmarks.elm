@@ -20,6 +20,7 @@ main =
 type alias Model =
   { uid: Int
   , currentInput: String
+  , unseenTimeline: List Tweet
   , timeline: List Tweet
   , users: List UserData
   , score: Int
@@ -32,6 +33,7 @@ type Msg =
   NoOp
   | Reset
   | Tick
+  | ShowMoreTweets
   | StartRound
   | EndRound
   | CreateUser UserData
@@ -46,6 +48,7 @@ type Msg =
 init : (Model, Cmd Msg)
 init =
   { currentInput = ""
+  , unseenTimeline = []
   , timeline = []
   , uid = 1
   , users = []
@@ -114,7 +117,7 @@ addTweet tweet model =
   let tweet_ =
     { tweet | id = model.uid }
   in
-    { model | timeline = tweet_::model.timeline }
+    { model | unseenTimeline = tweet_::model.unseenTimeline }
     |> incrementId
 
 mapTimeline: (Tweet -> Tweet) -> Model -> Model
@@ -124,6 +127,10 @@ mapTimeline f model =
 filterTimeline: (Tweet -> Bool) -> Model -> Model
 filterTimeline f model =
   { model | timeline = List.filter f model.timeline }
+
+filterUnseenTimeline: (Tweet -> Bool) -> Model -> Model
+filterUnseenTimeline f model =
+  { model | unseenTimeline = List.filter f model.unseenTimeline }
 
 filterUsers : (UserData -> Bool) -> Model -> Model
 filterUsers f model =
@@ -140,8 +147,22 @@ endRound : Model -> Model
 endRound model =
   { model | inRound = False }
 
+showMoreTweets : Model -> Model
+showMoreTweets model =
+  let clearUnseen model_ =
+    { model_ | unseenTimeline = [] }
+  in
+  { model | timeline = (List.sortBy getRep model.unseenTimeline) ++ model.timeline }
+  |> clearUnseen
+
+
 updateScore : Msg -> Model -> Model
 updateScore msg model =
+  let countResistanceTweets model =
+    (model.unseenTimeline ++ model.timeline)
+    |> List.filter resistanceTweet
+    |> List.length
+  in
   case msg of
     Like tweet -> case tweet.user of
                     Player -> model
@@ -160,7 +181,7 @@ updateScore msg model =
                     Resist -> model |> addToScore 5 |> addToHealth 1
                     Boring -> model |> addToHealth -3
     Tick -> model
-            |> addToHealth (-1 * (List.length (List.filter resistanceTweet model.timeline) ))
+            |> addToHealth (-1 * countResistanceTweets model)
     _ -> model
 
 
@@ -192,6 +213,9 @@ pickUsers hd tl model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+  let updateScore_ =
+    updateScore msg
+  in
   case msg of
     Reset -> init
     NoOp -> model |> noEffects
@@ -201,14 +225,15 @@ update msg model =
             in
             case resisters of
               [] -> model |> (update EndRound)
-              hd::tl -> model |> (updateScore msg) |> pickUsers hd model.users
+              hd::tl -> model |> updateScore_ |> pickUsers hd model.users
     StartRound -> let tweet =
                     makeTweet Player model.currentInput
                   in
                     model
                     |> (setCurrentInput "") |> (addTweet tweet)
                     |> startRound |> genUsers
-    EndRound -> model |> endRound |> noEffects
+    EndRound -> model |> showMoreTweets |> endRound |> noEffects
+    ShowMoreTweets -> model |> showMoreTweets |> noEffects
     GenerateReply data -> model |> (genReply data)
     UpdateInput str -> model |> (setCurrentInput str) |> noEffects
     SendTweet tweet -> model |> (addTweet tweet) |> noEffects
@@ -218,22 +243,23 @@ update msg model =
                     else
                       t
                   in
-                    model |> (mapTimeline like) |> (updateScore msg) |> noEffects
+                    model |> (mapTimeline like) |> updateScore_ |> noEffects
     Unlike tweet -> let unlike t =
                       if t.id == tweet.id then
                         { t | liked = False }
                       else
                         t
                     in
-                      model |> (mapTimeline unlike) |> (updateScore msg) |> noEffects
+                      model |> (mapTimeline unlike) |> updateScore_ |> noEffects
     Block data -> let display t =
                       case t.user of
                         User.Player -> True
                         User.NPC otherData -> data.userId /= otherData.userId
                     in
                       model |> (filterTimeline display)
+                      |> (filterUnseenTimeline display)
                       |> (filterUsers (\u -> u.userId /= data.userId))
-                      |> (updateScore msg)
+                      |> updateScore_
                       |> noEffects
 
 
@@ -278,8 +304,19 @@ viewInRound model =
   div
     [ class "root" ]
     [ escapeHatch model
+    , loadMoreButton model
     , viewTweetList model
     ]
+
+loadMoreButton : Model -> Html Msg
+loadMoreButton model =
+  button
+    [ class "load-more"
+    , onClick ShowMoreTweets ]
+    [ model.unseenTimeline
+      |> List.length
+      |> toString
+      |> text ]
 
 viewTweetList : Model -> Html Msg
 viewTweetList model =

@@ -63,4 +63,9 @@ alignmentGenerator =
 
 userGenerator : Generator UserData
 userGenerator =
-  Random.map4 createUser nickGenerator handleGenerator aviGenerator alignmentGenerator
+  Random.map5 createUser
+              nickGenerator
+              handleGenerator
+              aviGenerator
+              alignmentGenerator
+              (float 0 1)

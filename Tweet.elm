@@ -24,3 +24,9 @@ resistanceTweet tweet =
   case tweet.user of
     Player -> False
     NPC data -> resists data
+
+getRep : Tweet -> Float
+getRep tweet =
+  case tweet.user of
+    Player -> 0.0
+    NPC data -> data.reputation
