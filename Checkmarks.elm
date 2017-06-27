@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Random exposing (generate)
+import List.Nonempty as NE exposing (Nonempty, sample)
 import String
 import Generators exposing (..)
 import User exposing (..)
@@ -64,11 +65,11 @@ init =
 
 tweetsPerTick : Model -> Int
 tweetsPerTick model =
-  1
+  1 + model.roundNumber // 5
 
 populationSize : Model -> Int
 populationSize model =
-  20
+  10 * (1 + (model.roundNumber - 1) % 5)
 
 -- Model
 
@@ -76,17 +77,16 @@ incrementId : Model -> Model
 incrementId model =
   { model | uid = model.uid + 1 }
 
-incrementRound : Model -> Model
-incrementRound model =
-  { model | roundNumber = model.roundNumber + 1 }
-
 addToScore : Int -> Model -> Model
 addToScore n model =
   { model | score = model.score + n }
 
 addToHealth : Int -> Model -> Model
 addToHealth n model =
-  { model | health = Basics.min (model.health + n) 100 }
+  let restrictRange m =
+    Basics.max 0 (Basics.min 100 m)
+  in
+  { model | health = restrictRange (model.health + n) }
   |> checkHealth
 
 checkHealth : Model -> Model
@@ -138,6 +138,9 @@ filterUsers f model =
 
 startRound : Model -> Model
 startRound model =
+  let incrementRound model =
+    { model | roundNumber = model.roundNumber + 1 }
+  in
   { model | inRound = True }
   |> addToHealth 200
   |> incrementRound
@@ -204,10 +207,13 @@ genUsers model =
 
 pickUsers : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
 pickUsers hd tl model =
-  let n =
-    tweetsPerTick model
+  let
+    n =
+      tweetsPerTick model
+    userPicker =
+      sample (NE.Nonempty hd tl)
   in
-    model ! List.repeat n (generate GenerateReply (pickFromList hd (hd::tl)))
+    model ! List.repeat n (generate GenerateReply userPicker)
 
 -- The update function itself
 
@@ -321,7 +327,7 @@ loadMoreButton model =
 viewTweetList : Model -> Html Msg
 viewTweetList model =
     ul
-        [ class "tweets-list" ]
+        [ class "tweet-list" ]
         (List.map viewTweetLi model.timeline)
 
 makeHeader : UserData -> Html Msg
@@ -366,7 +372,7 @@ likeButton tweet =
 viewTweetLi : Tweet -> Html Msg
 viewTweetLi tweet =
     li
-        [ class "tweets-list-item" ]
+        [ class "tweet-list-item" ]
         [ div
           [ class "tweet" ]
           [ viewHeader tweet
