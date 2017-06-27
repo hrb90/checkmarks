@@ -21,6 +21,12 @@ main =
         }
 
 
+type Page
+    = GameOver
+    | BeforeRound
+    | PlayingGame
+
+
 type alias Model =
     { uid : Int
     , currentInput : String
@@ -30,8 +36,7 @@ type alias Model =
     , score : Int
     , health : Int
     , roundNumber : Int
-    , inRound : Bool
-    , gameOver : Bool
+    , currentPage : Page
     }
 
 
@@ -61,8 +66,7 @@ init =
     , score = 0
     , health = 0
     , roundNumber = 0
-    , inRound = False
-    , gameOver = False
+    , currentPage = BeforeRound
     }
         ! []
 
@@ -147,7 +151,7 @@ startRound model =
         incrementRound model =
             { model | roundNumber = model.roundNumber + 1 }
     in
-        { model | inRound = True }
+        { model | currentPage = PlayingGame }
             |> addToHealth 200
             |> incrementRound
             |> clearUsers
@@ -155,7 +159,12 @@ startRound model =
 
 endRound : Model -> Model
 endRound model =
-    { model | inRound = False }
+    { model | currentPage = BeforeRound }
+
+
+endGame : Model -> Model
+endGame model =
+    { model | currentPage = GameOver }
 
 
 showMoreTweets : Model -> Model
@@ -163,8 +172,11 @@ showMoreTweets model =
     let
         clearUnseen model_ =
             { model_ | unseenTimeline = [] }
+
+        sortedUnseen =
+            List.sortBy getRep model.unseenTimeline
     in
-        { model | timeline = (List.sortBy getRep model.unseenTimeline) ++ model.timeline }
+        { model | timeline = sortedUnseen ++ model.timeline }
             |> clearUnseen
 
 
@@ -181,7 +193,7 @@ addToHealth n model =
 
         checkHealth model =
             if model.health <= 0 then
-                { model | gameOver = True } |> endRound
+                model |> endGame
             else
                 model
     in
@@ -302,6 +314,9 @@ update msg model =
     let
         updateScore_ =
             updateScore msg
+
+        resisters =
+            List.filter resists model.users
     in
         case msg of
             Reset ->
@@ -314,16 +329,12 @@ update msg model =
                 model |> addUser data |> noEffects
 
             Tick ->
-                let
-                    resisters =
-                        List.filter resists model.users
-                in
-                    case resisters of
-                        [] ->
-                            model |> endRound |> noEffects
+                case resisters of
+                    [] ->
+                        model |> endRound |> noEffects
 
-                        hd :: tl ->
-                            model |> updateScore_ |> pickUsers hd model.users
+                    hd :: tl ->
+                        model |> updateScore_ |> pickUsers hd model.users
 
             StartRound ->
                 let
@@ -373,18 +384,21 @@ update msg model =
 
             Block data ->
                 let
+                    noMatch data_ =
+                        data.userId /= data_.userId
+
                     display t =
                         case t.user of
                             User.Player ->
                                 True
 
                             User.NPC otherData ->
-                                data.userId /= otherData.userId
+                                noMatch otherData
                 in
                     model
                         |> (filterTimeline display)
                         |> (filterUnseenTimeline display)
-                        |> (filterUsers (\u -> u.userId /= data.userId))
+                        |> (filterUsers noMatch)
                         |> updateScore_
                         |> noEffects
 
@@ -395,12 +409,15 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
+    -- Issue either a Tick or a NoOp once a second depending on whether we're playing or not
     Time.every second
         (\_ ->
-            if model.inRound then
-                Tick
-            else
-                NoOp
+            case model.currentPage of
+                PlayingGame ->
+                    Tick
+
+                _ ->
+                    NoOp
         )
 
 
@@ -410,14 +427,14 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    case ( model.gameOver, model.inRound ) of
-        ( True, _ ) ->
+    case model.currentPage of
+        GameOver ->
             viewGameOver model
 
-        ( _, True ) ->
+        PlayingGame ->
             viewInRound model
 
-        ( _, False ) ->
+        BeforeRound ->
             viewStartRound model
 
 
@@ -572,6 +589,13 @@ health model =
         [ text (toString model.health) ]
 
 
+roundBadge : Model -> Html Msg
+roundBadge model =
+    p
+        [ class "round-number" ]
+        [ text (toString model.roundNumber) ]
+
+
 
 -- This is for development purposes, it's a place where I can put things
 -- that won't exist in the final UI but are helpful in development
@@ -583,4 +607,5 @@ escapeHatch model =
         [ class "escape-hatch" ]
         [ score model
         , health model
+        , roundBadge model
         ]
