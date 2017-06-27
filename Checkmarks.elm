@@ -77,25 +77,6 @@ incrementId : Model -> Model
 incrementId model =
   { model | uid = model.uid + 1 }
 
-addToScore : Int -> Model -> Model
-addToScore n model =
-  { model | score = model.score + n }
-
-addToHealth : Int -> Model -> Model
-addToHealth n model =
-  let restrictRange m =
-    Basics.max 0 (Basics.min 100 m)
-  in
-  { model | health = restrictRange (model.health + n) }
-  |> checkHealth
-
-checkHealth : Model -> Model
-checkHealth model =
-  if model.health <= 0 then
-    { model | gameOver = True } |> endRound
-  else
-    model
-
 setCurrentInput : String -> Model -> Model
 setCurrentInput newInput model =
   { model | currentInput = newInput }
@@ -158,33 +139,57 @@ showMoreTweets model =
   { model | timeline = (List.sortBy getRep model.unseenTimeline) ++ model.timeline }
   |> clearUnseen
 
+addToScore : Int -> Model -> Model
+addToScore n model =
+  { model | score = model.score + n }
+
+addToHealth : Int -> Model -> Model
+addToHealth n model =
+  let
+    restrictRange m =
+      Basics.max 0 (Basics.min 100 m)
+    checkHealth model =
+      if model.health <= 0 then
+        { model | gameOver = True } |> endRound
+      else
+        model
+  in
+    { model | health = restrictRange (model.health + n) }
+    |> checkHealth
 
 updateScore : Msg -> Model -> Model
 updateScore msg model =
-  let countResistanceTweets model =
-    (model.unseenTimeline ++ model.timeline)
-    |> List.filter resistanceTweet
-    |> List.length
+  let
+    countResistanceTweets =
+      (model.unseenTimeline ++ model.timeline)
+      |> List.filter resistanceTweet
+      |> List.length
+    onLike data =
+      case data.alignment of
+        Maga -> model |> addToScore 1 |> addToHealth 1
+        Resist -> model |> addToHealth -3
+        Boring -> model |> addToHealth -1
+    onUnlike data =
+      case data.alignment of
+        Maga -> model |> addToHealth -3
+        Resist -> model |> addToScore 1
+        Boring -> model |> addToHealth -1
+    onBlock data =
+      case data.alignment of
+        Maga -> model |> addToHealth -5
+        Resist -> model |> addToScore 5 |> addToHealth 1
+        Boring -> model |> addToHealth -3
   in
   case msg of
     Like tweet -> case tweet.user of
                     Player -> model
-                    NPC data -> case data.alignment of
-                                  Maga -> model |> addToScore 1 |> addToHealth 1
-                                  Resist -> model |> addToHealth -3
-                                  Boring -> model |> addToHealth -1
+                    NPC data -> onLike data
     Unlike tweet -> case tweet.user of
                     Player -> model
-                    NPC data -> case data.alignment of
-                                  Maga -> model |> addToHealth -3
-                                  Resist -> model |> addToScore 1
-                                  Boring -> model |> addToHealth -1
-    Block data -> case data.alignment of
-                    Maga -> model |> addToHealth -5
-                    Resist -> model |> addToScore 5 |> addToHealth 1
-                    Boring -> model |> addToHealth -3
+                    NPC data -> onUnlike data
+    Block data -> onBlock data
     Tick -> model
-            |> addToHealth (-1 * countResistanceTweets model)
+            |> addToHealth (-1 * countResistanceTweets)
     _ -> model
 
 
@@ -230,7 +235,7 @@ update msg model =
               List.filter resists model.users
             in
             case resisters of
-              [] -> model |> (update EndRound)
+              [] -> model |> endRound |> noEffects
               hd::tl -> model |> updateScore_ |> pickUsers hd model.users
     StartRound -> let tweet =
                     makeTweet Player model.currentInput
@@ -257,10 +262,11 @@ update msg model =
                         t
                     in
                       model |> (mapTimeline unlike) |> updateScore_ |> noEffects
-    Block data -> let display t =
-                      case t.user of
-                        User.Player -> True
-                        User.NPC otherData -> data.userId /= otherData.userId
+    Block data -> let
+                      display t =
+                        case t.user of
+                          User.Player -> True
+                          User.NPC otherData -> data.userId /= otherData.userId
                     in
                       model |> (filterTimeline display)
                       |> (filterUnseenTimeline display)
