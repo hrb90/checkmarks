@@ -1,4 +1,4 @@
-module Generators exposing (..)
+module Generators exposing (userGenerator, tweetGenerator)
 
 import Array exposing (fromList, get)
 import List.Nonempty as NE exposing (Nonempty, sample, (:::))
