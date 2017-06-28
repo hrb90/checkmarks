@@ -38,7 +38,10 @@ tweetsPerTick model =
 
 populationSize : Model -> Int
 populationSize model =
-    10 * (1 + (model.roundNumber - 1) % 5)
+    (model.roundNumber - 1)
+        % 5
+        |> (+) 1
+        |> (*) 10
 
 
 

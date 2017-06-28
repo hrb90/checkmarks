@@ -10,6 +10,14 @@ import Tweet exposing (..)
 import User exposing (..)
 
 
+-- Helpers
+
+
+text_ =
+    text << toString
+
+
+
 -- View logic
 
 
@@ -32,8 +40,8 @@ viewGameOver model =
         [ class "game-over" ]
         [ p
             []
-            [ text "Game Over!"
-            , text ("Score: " ++ (toString model.score))
+            [ text "Game Over! Score: "
+            , score model
             ]
         , button
             [ class "restart"
@@ -64,11 +72,7 @@ loadMoreButton model =
         [ class "load-more"
         , onClick Msg.ShowMoreTweets
         ]
-        [ model.unseenTimeline
-            |> List.length
-            |> toString
-            |> text
-        ]
+        [ text_ <| List.length <| model.unseenTimeline ]
 
 
 viewTweetList : Model -> Html Msg
@@ -118,7 +122,7 @@ viewFooter tweet =
 likeButton : Tweet -> Html Msg
 likeButton tweet =
     let
-        ( class_, msg_, text_ ) =
+        ( class_, msg_, text__ ) =
             if tweet.liked then
                 ( "star liked", Msg.Unlike tweet, "Unlike" )
             else
@@ -128,7 +132,7 @@ likeButton tweet =
             [ class class_
             , onClick msg_
             ]
-            [ text text_ ]
+            [ text text__ ]
 
 
 viewTweetLi : Tweet -> Html Msg
@@ -157,7 +161,7 @@ tweetInput str =
             []
         , button
             [ onClick Msg.StartRound
-            , disabled (String.isEmpty str)
+            , disabled <| String.isEmpty <| str
             ]
             [ text "Tweet" ]
         ]
@@ -167,21 +171,21 @@ score : Model -> Html Msg
 score model =
     p
         [ class "score" ]
-        [ text (toString model.score) ]
+        [ text_ model.score ]
 
 
 health : Model -> Html Msg
 health model =
     p
         [ class "health" ]
-        [ text (toString model.health) ]
+        [ text_ model.health ]
 
 
 roundBadge : Model -> Html Msg
 roundBadge model =
     p
         [ class "round-number" ]
-        [ text (toString model.roundNumber) ]
+        [ text_ model.roundNumber ]
 
 
 
