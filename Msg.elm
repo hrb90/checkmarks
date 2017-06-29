@@ -13,7 +13,6 @@ type Msg
     | StartRound
     | EndRound
     | CreateUser UserData
-    | GenerateReply UserData
     | UpdateInput String
     | SendTweet Tweet
     | Like Tweet

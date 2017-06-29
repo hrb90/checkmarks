@@ -33,7 +33,9 @@ init =
 
 tweetsPerTick : Model -> Int
 tweetsPerTick model =
-    1 + model.roundNumber // 5
+    (model.roundNumber - 1)
+        // 5
+        |> (+) 1
 
 
 populationSize : Model -> Int
@@ -140,22 +142,19 @@ showMoreTweets model =
 
 addToScore : Int -> Model -> Model
 addToScore n model =
-    { model | score = model.score + n }
+    { model | score = Basics.max 0 (model.score + n) }
 
 
 addToHealth : Int -> Model -> Model
 addToHealth n model =
     let
-        restrictRange m =
-            Basics.max 0 (Basics.min 100 m)
-
         checkHealth model =
-            if model.health <= 0 then
+            if model.health == 0 then
                 model |> endGame
             else
                 model
     in
-        { model | health = restrictRange (model.health + n) }
+        { model | health = clamp 0 100 (model.health + n) }
             |> checkHealth
 
 
@@ -237,9 +236,18 @@ noEffects model =
     model ! []
 
 
-genReply : UserData -> Model -> ( Model, Cmd Msg )
-genReply data model =
-    model ! [ generate SendTweet (tweetGenerator data) ]
+genReplies : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
+genReplies hd tl model =
+    let
+        n =
+            tweetsPerTick model
+
+        makeGenerator hd_ tl_ =
+            (sample (NE.Nonempty hd tl))
+                |> Random.andThen tweetGenerator
+    in
+        model
+            ! List.repeat n (generate SendTweet (makeGenerator hd tl))
 
 
 genUsers : Model -> ( Model, Cmd Msg )
@@ -249,18 +257,6 @@ genUsers model =
             populationSize model
     in
         model ! List.repeat n (generate CreateUser userGenerator)
-
-
-pickUsers : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
-pickUsers hd tl model =
-    let
-        n =
-            tweetsPerTick model
-
-        userPicker =
-            sample (NE.Nonempty hd tl)
-    in
-        model ! List.repeat n (generate GenerateReply userPicker)
 
 
 
@@ -287,12 +283,15 @@ update msg model =
                 model |> addUser data |> noEffects
 
             Tick ->
-                case resisters of
+                case model.users of
                     [] ->
                         model |> endRound |> noEffects
 
                     hd :: tl ->
-                        model |> updateScore_ |> pickUsers hd model.users
+                        if List.isEmpty resisters then
+                            model |> endRound |> noEffects
+                        else
+                            model |> updateScore_ |> genReplies hd tl
 
             StartRound ->
                 let
@@ -310,9 +309,6 @@ update msg model =
 
             ShowMoreTweets ->
                 model |> showMoreTweets |> noEffects
-
-            GenerateReply data ->
-                model |> (genReply data)
 
             UpdateInput str ->
                 model |> (setCurrentInput str) |> noEffects
