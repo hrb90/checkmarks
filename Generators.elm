@@ -10,18 +10,56 @@ import User exposing (..)
 -- Tweet generators
 
 
-magaTweets =
-    NE.Nonempty "You tell em Mr President sir!!"
-        [ "fuck me daddy"
-        , "build the wall mr president"
+type TweetType
+    = StraightInsult
+    | SuggestionWithInsult
+    | TrumpSlogan
+    | RandomNonsense
+
+
+slogans =
+    NE.Nonempty "maga"
+        [ "jobs jobs jobs"
+        , "high energy"
+        , "make america great again"
         ]
 
 
-resistTweets =
-    NE.Nonempty "LOL COVFEFE YOU IDIOT DUMMY MORON, GO BACK TO RUSSIA"
-        [ "you are a total dumbfuck"
-        , "fuck me harder daddy"
+insultNounPhrases =
+    NE.Nonempty "colossal fucking idiot"
+        [ "misogynistic jerk"
+        , "disgrace to our country"
+        , "fucking lunatic"
+        , "crazy whackjob"
+        , "disgusting man"
+        , "puppet asshole"
         ]
+
+
+tweetFromType : TweetType -> Generator String
+tweetFromType tweetType =
+    case tweetType of
+        StraightInsult ->
+            Random.map ((++) "You ") (sample insultNounPhrases)
+
+        SuggestionWithInsult ->
+            Random.map2 (\x -> \y -> x ++ ", you " ++ y)
+                (sample suggestionClauses)
+                (sample insultNounPhrases)
+
+        TrumpSlogan ->
+            sample slogans
+
+        RandomNonsense ->
+            sample laughter
+
+
+suggestionClauses =
+    NE.Nonempty "go fuck yourself" [ "resign" ]
+
+
+laughter =
+    NE.Nonempty "😂😂😂sweet baby Jesus" [ "HAHAHAHAHA" ]
 
 
 boringTweets =
@@ -31,15 +69,29 @@ boringTweets =
 
 npcTextGenerator : Alignment -> Generator String
 npcTextGenerator alignment =
-    case alignment of
-        User.Maga ->
-            sample magaTweets
+    let
+        magaTweetTypes =
+            NE.Nonempty TrumpSlogan []
 
-        User.Resist ->
-            sample resistTweets
+        resistTweetTypes =
+            NE.Nonempty StraightInsult [ SuggestionWithInsult ]
 
-        User.Boring ->
-            sample boringTweets
+        boringTweetTypes =
+            NE.Nonempty RandomNonsense []
+
+        pickTweetTypes =
+            case alignment of
+                User.Maga ->
+                    magaTweetTypes
+
+                User.Resist ->
+                    resistTweetTypes
+
+                User.Boring ->
+                    boringTweetTypes
+    in
+        sample pickTweetTypes
+            |> Random.andThen tweetFromType
 
 
 tweetGenerator : UserData -> Generator Tweet
