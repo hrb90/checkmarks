@@ -33,7 +33,30 @@ insultNounPhrases =
         , "crazy whackjob"
         , "disgusting man"
         , "puppet asshole"
+        , "ravenous cocksocket"
+        , "fat, out of shape sack of garbage"
+        , "absolute disgrace"
+        , "failing pile of garbage"
         ]
+
+
+suggestionClauses =
+    NE.Nonempty "go fuck yourself"
+        [ "resign"
+        , "stop tweeting"
+        , "shut up"
+        , "delete your account"
+        , "fire up the cheeto dust cannons"
+        ]
+
+
+laughter =
+    NE.Nonempty "😂😂😂sweet baby Jesus" [ "HAHAHAHAHA" ]
+
+
+boringTweets =
+    NE.Nonempty "i dont know why im here"
+        [ "you are not my daddy" ]
 
 
 tweetFromType : TweetType -> Generator String
@@ -52,19 +75,6 @@ tweetFromType tweetType =
 
         RandomNonsense ->
             sample laughter
-
-
-suggestionClauses =
-    NE.Nonempty "go fuck yourself" [ "resign" ]
-
-
-laughter =
-    NE.Nonempty "😂😂😂sweet baby Jesus" [ "HAHAHAHAHA" ]
-
-
-boringTweets =
-    NE.Nonempty "i dont know why im here"
-        [ "you are not my daddy" ]
 
 
 npcTextGenerator : Alignment -> Generator String
