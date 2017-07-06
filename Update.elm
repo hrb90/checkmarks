@@ -33,9 +33,7 @@ init =
 
 tweetsPerTick : Model -> Int
 tweetsPerTick model =
-    (model.roundNumber - 1)
-        // 5
-        |> (+) 1
+    (model.roundNumber + 4) // 5
 
 
 populationSize : Model -> Int

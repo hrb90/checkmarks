@@ -43,15 +43,6 @@ type User
     | NPC UserData
 
 
-legate =
-    { nickname = "William LeGate"
-    , username = "williamlegate"
-    , avatarUrl = ""
-    , userId = 0
-    , alignment = Resist
-    }
-
-
 resists : UserData -> Bool
 resists ud =
     case ud.alignment of
