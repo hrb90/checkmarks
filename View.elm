@@ -8,7 +8,7 @@ import Msg exposing (Msg)
 import String
 import Tweet exposing (..)
 import User exposing (..)
-import ViewGameOver exposing (..)
+import StylishView exposing (..)
 
 
 -- Helpers
@@ -33,11 +33,6 @@ view model =
 
         BeforeRound ->
             viewStartRound model
-
-
-viewStartRound : Model -> Html Msg
-viewStartRound model =
-    tweetInput model.currentInput
 
 
 viewInRound : Model -> Html Msg
@@ -129,25 +124,6 @@ viewTweetLi tweet =
             , text tweet.content
             , viewFooter tweet
             ]
-        ]
-
-
-tweetInput : String -> Html Msg
-tweetInput str =
-    div
-        [ class "tweet-input" ]
-        [ textarea
-            [ class "tweet-box"
-            , placeholder "Write a tweet!"
-            , value str
-            , onInput Msg.UpdateInput
-            ]
-            []
-        , button
-            [ onClick Msg.StartRound
-            , disabled <| String.isEmpty <| str
-            ]
-            [ text "Tweet" ]
         ]
 
 

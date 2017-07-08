@@ -1,4 +1,4 @@
-module ViewGameOver exposing (viewGameOver)
+module StylishView exposing (viewGameOver, viewStartRound)
 
 import Color exposing (..)
 import Element exposing (..)
@@ -18,6 +18,8 @@ type Styles
     = None
     | Button
     | Box
+    | TextInput
+    | TweetInput
     | Page
 
 
@@ -34,7 +36,7 @@ twitterTextBlue =
 
 
 twitterLightBlue =
-    rgb 232 232 255
+    rgb 232 245 252
 
 
 twitterLightGrey =
@@ -66,6 +68,13 @@ stylesheet =
             , Color.border Color.black
             , rounded 20
             ]
+        , style TweetInput
+            [ Color.background twitterLightBlue ]
+        , style TextInput
+            [ all 1
+            , Color.border twitterTextBlue
+            , rounded 5
+            ]
         ]
 
 
@@ -94,7 +103,9 @@ gameOverBox score =
                 , button <|
                     el
                         Button
-                        [ onClick Msg.Reset ]
+                        [ onClick Msg.Reset
+                        , padding 10
+                        ]
                         (text "New Game")
                 ]
     in
@@ -105,3 +116,34 @@ gameOverBox score =
             , padding 20
             ]
             col
+
+
+viewStartRound model =
+    layout stylesheet <|
+        (tweetInput model.currentInput)
+
+
+tweetInput str =
+    column
+        TweetInput
+        [ verticalCenter
+        , center
+        , spacing 10
+        , padding 10
+        ]
+        [ textArea
+            TextInput
+            [ placeholder "What's happening?"
+            , onInput Msg.UpdateInput
+            ]
+            str
+        , button <|
+            el
+                Button
+                [ alignRight
+                , onClick Msg.StartRound
+                , disabled <| String.isEmpty <| str
+                , padding 10
+                ]
+                (text "Tweet")
+        ]
