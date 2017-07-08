@@ -127,20 +127,6 @@ viewTweetLi tweet =
         ]
 
 
-score : Model -> Html Msg
-score model =
-    p
-        [ class "score" ]
-        [ textCoercive model.score ]
-
-
-roundBadge : Model -> Html Msg
-roundBadge model =
-    p
-        [ class "round-number" ]
-        [ textCoercive model.roundNumber ]
-
-
 
 -- This is for development purposes, it's a place where I can put things
 -- that won't exist in the final UI but are helpful in development

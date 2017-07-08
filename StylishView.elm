@@ -1,4 +1,11 @@
-module StylishView exposing (viewGameOver, viewStartRound, health)
+module StylishView
+    exposing
+        ( viewGameOver
+        , viewStartRound
+        , health
+        , roundBadge
+        , score
+        )
 
 import Color exposing (..)
 import Element exposing (..)
@@ -22,6 +29,7 @@ type Styles
     | TweetInput
     | HealthBar
     | HealthRed
+    | Badge
     | Page
 
 
@@ -85,6 +93,10 @@ stylesheet =
         , style HealthRed
             [ Color.background Color.red
             , rounded 5
+            ]
+        , style Badge
+            [ Color.background Color.yellow
+            , rounded 20
             ]
         ]
 
@@ -181,3 +193,19 @@ healthBar currHealth =
             , height (px 10)
             ]
             redBar
+
+
+roundBadge model =
+    layout stylesheet <|
+        el
+            Badge
+            [ maxWidth (px 100), padding 10 ]
+            (text <| "Round " ++ (toString model.roundNumber))
+
+
+score model =
+    layout stylesheet <|
+        el
+            Badge
+            [ maxWidth (px 100), padding 10 ]
+            (text <| "Score: " ++ (toString model.score))
