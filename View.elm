@@ -39,7 +39,8 @@ viewInRound : Model -> Html Msg
 viewInRound model =
     div
         [ class "root" ]
-        [ escapeHatch model
+        [ navBar model
+        , escapeHatch model
         , loadMoreButton model
         , viewTweetList model
         ]
@@ -143,8 +144,5 @@ escapeHatch : Model -> Html Msg
 escapeHatch model =
     div
         [ class "escape-hatch" ]
-        [ score model
-        , health model
-        , roundBadge model
-        , endGameButton
+        [ endGameButton
         ]

@@ -2,9 +2,7 @@ module StylishView
     exposing
         ( viewGameOver
         , viewStartRound
-        , health
-        , roundBadge
-        , score
+        , navBar
         )
 
 import Color exposing (..)
@@ -88,11 +86,11 @@ stylesheet =
         , style HealthBar
             [ all 1
             , Color.border Color.black
-            , rounded 5
+            , rounded 20
             ]
         , style HealthRed
             [ Color.background Color.red
-            , rounded 5
+            , rounded 20
             ]
         , style Badge
             [ Color.background Color.yellow
@@ -172,9 +170,26 @@ tweetInput str =
         ]
 
 
-health model =
-    layout stylesheet <|
-        (healthBar model.health)
+navBar model =
+    let
+        badges =
+            row
+                None
+                [ spacing 20 ]
+                [ roundBadge model, score model ]
+    in
+        layout stylesheet <|
+            row
+                None
+                [ height (px 50)
+                , width (percent 100)
+                , paddingXY 10 0
+                , verticalCenter
+                , justify
+                ]
+                [ badges
+                , healthBar model.health
+                ]
 
 
 healthBar currHealth =
@@ -183,29 +198,27 @@ healthBar currHealth =
             el
                 HealthRed
                 [ width <| percent <| toFloat <| (clamp 0 100 currHealth)
-                , height (px 8)
+                , height (px 18)
                 ]
                 empty
     in
         el
             HealthBar
             [ width (px 100)
-            , height (px 10)
+            , height (px 20)
             ]
             redBar
 
 
 roundBadge model =
-    layout stylesheet <|
-        el
-            Badge
-            [ maxWidth (px 100), padding 10 ]
-            (text <| "Round " ++ (toString model.roundNumber))
+    el
+        Badge
+        [ maxWidth (px 100), padding 10 ]
+        (text <| "Round " ++ (toString model.roundNumber))
 
 
 score model =
-    layout stylesheet <|
-        el
-            Badge
-            [ maxWidth (px 100), padding 10 ]
-            (text <| "Score: " ++ (toString model.score))
+    el
+        Badge
+        [ maxWidth (px 100), padding 10 ]
+        (text <| "Score: " ++ (toString model.score))
