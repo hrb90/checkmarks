@@ -353,6 +353,3 @@ update msg model =
                         |> (filterUsers noMatch)
                         |> updateScore_
                         |> noEffects
-
-            EndGame ->
-                model |> endRound |> endGame |> noEffects

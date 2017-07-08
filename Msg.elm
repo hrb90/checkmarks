@@ -12,7 +12,6 @@ type Msg
     | ShowMoreTweets
     | StartRound
     | EndRound
-    | EndGame
     | CreateUser UserData
     | UpdateInput String
     | SendTweet Tweet
