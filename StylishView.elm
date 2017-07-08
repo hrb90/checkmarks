@@ -3,6 +3,7 @@ module StylishView
         ( viewGameOver
         , viewStartRound
         , navBar
+        , loadMoreButton
         )
 
 import Color exposing (..)
@@ -22,6 +23,7 @@ import Style.Color as Color
 type Styles
     = None
     | Button
+    | NotifsButton
     | Box
     | TextInput
     | TweetInput
@@ -96,6 +98,10 @@ stylesheet =
             [ Color.background Color.yellow
             , rounded 20
             ]
+        , style NotifsButton
+            [ Color.background twitterLightGrey
+            , Color.text twitterTextBlue
+            ]
         ]
 
 
@@ -168,6 +174,30 @@ tweetInput str =
                 ]
                 (text "Tweet")
         ]
+
+
+
+-- Game views
+
+
+loadMoreButton model =
+    let
+        loadMoreText numTweets =
+            el
+                None
+                [ center ]
+                (text <| (toString numTweets ++ " new replies"))
+    in
+        layout stylesheet <|
+            if List.isEmpty model.unseenTimeline then
+                empty
+            else
+                el
+                    NotifsButton
+                    [ onClick Msg.ShowMoreTweets
+                    , paddingXY 0 10
+                    ]
+                    (loadMoreText <| List.length <| model.unseenTimeline)
 
 
 navBar model =

@@ -46,15 +46,6 @@ viewInRound model =
         ]
 
 
-loadMoreButton : Model -> Html Msg
-loadMoreButton model =
-    button
-        [ class "load-more"
-        , onClick Msg.ShowMoreTweets
-        ]
-        [ textCoercive <| List.length <| model.unseenTimeline ]
-
-
 viewTweetList : Model -> Html Msg
 viewTweetList model =
     ul
