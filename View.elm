@@ -8,12 +8,13 @@ import Msg exposing (Msg)
 import String
 import Tweet exposing (..)
 import User exposing (..)
+import ViewGameOver exposing (..)
 
 
 -- Helpers
 
 
-text_ =
+textCoercive =
     text << toString
 
 
@@ -32,23 +33,6 @@ view model =
 
         BeforeRound ->
             viewStartRound model
-
-
-viewGameOver : Model -> Html Msg
-viewGameOver model =
-    div
-        [ class "game-over" ]
-        [ p
-            []
-            [ text "Game Over! Score: "
-            , score model
-            ]
-        , button
-            [ class "restart"
-            , onClick Msg.Reset
-            ]
-            [ text "New Game" ]
-        ]
 
 
 viewStartRound : Model -> Html Msg
@@ -72,7 +56,7 @@ loadMoreButton model =
         [ class "load-more"
         , onClick Msg.ShowMoreTweets
         ]
-        [ text_ <| List.length <| model.unseenTimeline ]
+        [ textCoercive <| List.length <| model.unseenTimeline ]
 
 
 viewTweetList : Model -> Html Msg
@@ -122,7 +106,7 @@ viewFooter tweet =
 likeButton : Tweet -> Html Msg
 likeButton tweet =
     let
-        ( class_, msg_, text__ ) =
+        ( class_, msg_, textCoercive_ ) =
             if tweet.liked then
                 ( "star liked", Msg.Unlike tweet, "Unlike" )
             else
@@ -132,7 +116,7 @@ likeButton tweet =
             [ class class_
             , onClick msg_
             ]
-            [ text text__ ]
+            [ text textCoercive_ ]
 
 
 viewTweetLi : Tweet -> Html Msg
@@ -171,26 +155,33 @@ score : Model -> Html Msg
 score model =
     p
         [ class "score" ]
-        [ text_ model.score ]
+        [ textCoercive model.score ]
 
 
 health : Model -> Html Msg
 health model =
     p
         [ class "health" ]
-        [ text_ model.health ]
+        [ textCoercive model.health ]
 
 
 roundBadge : Model -> Html Msg
 roundBadge model =
     p
         [ class "round-number" ]
-        [ text_ model.roundNumber ]
+        [ textCoercive model.roundNumber ]
 
 
 
 -- This is for development purposes, it's a place where I can put things
 -- that won't exist in the final UI but are helpful in development
+
+
+endGameButton : Html Msg
+endGameButton =
+    button
+        [ onClick Msg.EndGame ]
+        [ text "End Game" ]
 
 
 escapeHatch : Model -> Html Msg
@@ -200,4 +191,5 @@ escapeHatch model =
         [ score model
         , health model
         , roundBadge model
+        , endGameButton
         ]
