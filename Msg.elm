@@ -14,7 +14,7 @@ type Msg
     | EndRound
     | CreateUser UserData
     | UpdateInput String
-    | SendTweet Tweet
+    | SendTweets (List Tweet)
     | Like Tweet
     | Unlike Tweet
     | Block UserData

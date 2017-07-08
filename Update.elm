@@ -31,9 +31,9 @@ init =
 -- Utils
 
 
-tweetsPerTick : Model -> Int
-tweetsPerTick model =
-    (model.roundNumber + 4) // 5
+avgTweetsPerTick : Model -> Float
+avgTweetsPerTick model =
+    (toFloat model.roundNumber + 2.0) / 5
 
 
 populationSize : Model -> Int
@@ -71,6 +71,16 @@ addUser data model =
     in
         { model | users = data_ :: model.users }
             |> incrementId
+
+
+addTweets : List Tweet -> Model -> Model
+addTweets tweets model =
+    case tweets of
+        [] ->
+            model
+
+        hd :: tl ->
+            addTweet hd (addTweets tl model)
 
 
 addTweet : Tweet -> Model -> Model
@@ -237,15 +247,11 @@ noEffects model =
 genReplies : UserData -> List UserData -> Model -> ( Model, Cmd Msg )
 genReplies hd tl model =
     let
-        n =
-            tweetsPerTick model
-
-        makeGenerator hd_ tl_ =
-            (sample (NE.Nonempty hd tl))
-                |> Random.andThen tweetGenerator
+        lambda =
+            avgTweetsPerTick model
     in
         model
-            ! List.repeat n (generate SendTweet (makeGenerator hd tl))
+            ! [ generate SendTweets (makeTweetListGenerator lambda hd tl) ]
 
 
 genUsers : Model -> ( Model, Cmd Msg )
@@ -311,8 +317,8 @@ update msg model =
             UpdateInput str ->
                 model |> (setCurrentInput str) |> noEffects
 
-            SendTweet tweet ->
-                model |> (addTweet tweet) |> noEffects
+            SendTweets tweets ->
+                model |> (addTweets tweets) |> noEffects
 
             Like tweet ->
                 let

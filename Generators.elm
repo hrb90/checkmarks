@@ -1,6 +1,7 @@
-module Generators exposing (userGenerator, tweetGenerator)
+module Generators exposing (userGenerator, makeTweetListGenerator)
 
 import Array exposing (fromList, get)
+import Distributions exposing (unsafePoisson)
 import List.Nonempty as NE exposing (Nonempty, sample, (:::))
 import Random exposing (..)
 import Tweet exposing (..)
@@ -107,6 +108,17 @@ npcTextGenerator alignment =
 tweetGenerator : UserData -> Generator Tweet
 tweetGenerator data =
     Random.map (makeTweet (User.NPC data)) (npcTextGenerator data.alignment)
+
+
+makeTweetListGenerator : Float -> UserData -> List UserData -> Generator (List Tweet)
+makeTweetListGenerator lambda hd tl =
+    let
+        tweetMaker =
+            sample (NE.Nonempty hd tl)
+                |> Random.andThen tweetGenerator
+    in
+        unsafePoisson lambda
+            |> Random.andThen ((flip Random.list) tweetMaker)
 
 
 
