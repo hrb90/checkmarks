@@ -134,13 +134,6 @@ score model =
         [ textCoercive model.score ]
 
 
-health : Model -> Html Msg
-health model =
-    p
-        [ class "health" ]
-        [ textCoercive model.health ]
-
-
 roundBadge : Model -> Html Msg
 roundBadge model =
     p

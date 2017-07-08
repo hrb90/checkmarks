@@ -1,4 +1,4 @@
-module StylishView exposing (viewGameOver, viewStartRound)
+module StylishView exposing (viewGameOver, viewStartRound, health)
 
 import Color exposing (..)
 import Element exposing (..)
@@ -7,7 +7,7 @@ import Element.Events exposing (..)
 import Model exposing (..)
 import Msg exposing (Msg)
 import Style exposing (..)
-import Style.Border exposing (rounded, none, all)
+import Style.Border exposing (rounded, none, all, bottom)
 import Style.Color as Color
 
 
@@ -20,6 +20,8 @@ type Styles
     | Box
     | TextInput
     | TweetInput
+    | HealthBar
+    | HealthRed
     | Page
 
 
@@ -73,6 +75,15 @@ stylesheet =
         , style TextInput
             [ all 1
             , Color.border twitterTextBlue
+            , rounded 5
+            ]
+        , style HealthBar
+            [ all 1
+            , Color.border Color.black
+            , rounded 5
+            ]
+        , style HealthRed
+            [ Color.background Color.red
             , rounded 5
             ]
         ]
@@ -147,3 +158,26 @@ tweetInput str =
                 ]
                 (text "Tweet")
         ]
+
+
+health model =
+    layout stylesheet <|
+        (healthBar model.health)
+
+
+healthBar currHealth =
+    let
+        redBar =
+            el
+                HealthRed
+                [ width <| percent <| toFloat <| (clamp 0 100 currHealth)
+                , height (px 8)
+                ]
+                empty
+    in
+        el
+            HealthBar
+            [ width (px 100)
+            , height (px 10)
+            ]
+            redBar
