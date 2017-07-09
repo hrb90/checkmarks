@@ -30,6 +30,7 @@ type Styles
     | Badge
     | Page
     | Tweet
+    | IntroSplashStyle
 
 
 
@@ -104,6 +105,7 @@ stylesheet =
         , style PressedLikeButton
             [ Color.background Color.red ]
         , style Tweet []
+        , style IntroSplashStyle []
         ]
 
 
@@ -124,6 +126,53 @@ view model =
 
             BeforeRound ->
                 viewStartRound model
+
+            Introduction page ->
+                viewIntro page
+
+
+
+-- Introduction
+
+
+viewIntro : IntroductionPage -> Element Styles a Msg
+viewIntro page =
+    case page of
+        IntroSplash ->
+            viewIntroSplash
+
+
+newGameButton : Element Styles a Msg
+newGameButton =
+    button <|
+        el
+            Button
+            [ onClick Msg.Reset
+            , padding 10
+            ]
+            (text "New Game")
+
+
+viewIntroSplash : Element Styles a Msg
+viewIntroSplash =
+    el IntroSplashStyle [] <|
+        el Box
+            [ verticalCenter
+            , center
+            , 80 |> percent |> width
+            , 40 |> percent |> height
+            ]
+        <|
+            row None
+                [ verticalCenter, spacing 50 ]
+            <|
+                (List.map
+                    (paragraph None [ alignLeft ] << List.singleton << text)
+                    [ "Rampant Twitter cyberbullying these days..."
+                    , "Whitehouse is not the exception..."
+                    ]
+                )
+                    ++ [ newGameButton ]
 
 
 
@@ -147,13 +196,7 @@ gameOverBox score =
                 , spacing 20
                 ]
                 [ text <| "Game Over! Score: " ++ (toString score)
-                , button <|
-                    el
-                        Button
-                        [ onClick Msg.Reset
-                        , padding 10
-                        ]
-                        (text "New Game")
+                , newGameButton
                 ]
     in
         el
@@ -317,8 +360,8 @@ navBar model =
     in
         row
             None
-            [ height (px 50)
-            , width (percent 100)
+            [ 50 |> px |> height
+            , 100 |> percent |> width
             , paddingXY 10 0
             , verticalCenter
             , justify
@@ -333,15 +376,15 @@ healthBar currHealth =
         redBar =
             el
                 HealthRed
-                [ width <| percent <| toFloat <| (clamp 0 100 currHealth)
-                , height (px 18)
+                [ toFloat (clamp 0 100 currHealth) |> percent |> width
+                , 18 |> px |> height
                 ]
                 empty
     in
         el
             HealthBar
-            [ width (px 100)
-            , height (px 20)
+            [ 100 |> px |> width
+            , 20 |> px |> height
             ]
             redBar
 

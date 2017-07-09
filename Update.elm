@@ -14,17 +14,7 @@ import User exposing (..)
 
 init : ( Model, Cmd Msg )
 init =
-    { currentInput = ""
-    , unseenTimeline = []
-    , timeline = []
-    , uid = 1
-    , users = []
-    , score = 0
-    , health = 0
-    , roundNumber = 0
-    , currentPage = BeforeRound
-    }
-        ! []
+    initialModel ! []
 
 
 
@@ -278,7 +268,7 @@ update msg model =
     in
         case msg of
             Reset ->
-                init
+                newGameModel |> noEffects
 
             NoOp ->
                 model |> noEffects
